@@ -1,5 +1,3 @@
--- Active: 1748106262565@@127.0.0.1@5432@conservation_db
-
 -- creating database
 CREATE DATABASE conservation_db;
 -- creating "rangers" table
@@ -26,14 +24,7 @@ CREATE TABLE sightings (
     notes TEXT
 );
 
-DROP Table sightings;
-
-SELECT setval(
-        'sightings_sighting_id_seq', COALESCE(MAX(ranger_id), 1), true
-    )
-FROM rangers;
 -- populating all the table created above
-
 INSERT INTO
     rangers
 VALUES (
@@ -140,6 +131,53 @@ FROM species
     LEFT JOIN sightings ON species.species_id = sightings.species_id
 WHERE
     sightings.sighting_id IS NULL;
+
+--PROBLEM 6: Show the most recent 2 sightings.
+SELECT common_name, sighting_time, name
+FROM
+    sightings
+    LEFT JOIN rangers ON sightings.ranger_id = rangers.ranger_id
+    LEFT JOIN species ON sightings.species_id = species.species_id
+ORDER BY sightings.sighting_time DESC
+LIMIT 2;
+
+-- PROBLEM 7: Update all species discovered before year 1800 to have status 'Historic'
+UPDATE species
+SET
+    conservation_status = 'Historic'
+WHERE
+    discovery_date < '1800-01-01';
+
+-- PROBLEM 8: Label each sighting's time of day as 'Morning', 'Afternoon', or 'Evening'
+SELECT
+    sighting_id,
+    CASE
+        WHEN EXTRACT(
+            hour
+            FROM sighting_time
+        ) < 12 THEN 'Morning'
+        WHEN 12 < EXTRACT(
+            hour
+            FROM sighting_time
+        )
+        AND EXTRACT(
+            hour
+            FROM sighting_time
+        ) < 17 THEN 'Afternoon'
+        WHEN EXTRACT(
+            hour
+            FROM sighting_time
+        ) > 17 THEN 'Evening'
+    END AS time_of_day
+FROM sightings;
+
+-- PROBLEM 9: Delete rangers who have never sighted any species
+DELETE FROM rangers
+WHERE
+    ranger_id NOT IN (
+        SELECT ranger_id
+        FROM sightings
+    );
 
 SELECT * FROM rangers;
 
